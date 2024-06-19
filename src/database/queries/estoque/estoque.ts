@@ -1,6 +1,7 @@
 import pgClient from "../../db";
 import { QueryConfig, QueryResult } from "pg";
 import { getAssociatedStockProductInfo, getProductParams, AssociatedStockProduct } from "../products";
+import { logger } from "../../../lib/logger";
 
 type InsertStockFrozenParams = {
     idStore: number,
@@ -46,9 +47,12 @@ const isStockFrozen = async (idStore: number) => {
         values: [idStore]
     }
 
-    const result: QueryResult<{valor: boolean}> = await pgClient.query(query)
-
-    return result.rows[0].valor
+    try {
+        const result: QueryResult<{valor: boolean}> = await pgClient.query(query)
+        return result.rows[0].valor
+    } catch (error) {
+        throw error
+    }
 }
 
 const calcAssociatedQuantity = (params: AssociatedStockProduct, quantity: number) => {
@@ -108,7 +112,7 @@ const insertStockFrozen = async (params: InsertStockFrozenParams) => {
     try {
         await pgClient.query(query)
     } catch (error) {
-        console.error('Erro ao inserir em estoquecongelado no banco de dados:', error);
+        throw error
     }
 }
 
@@ -186,12 +190,13 @@ const updateStock = async (params: UpdateStock) => {
         await pgClient.query(insertQuery)
         await pgClient.query(updateQuery)
     } catch (error) {
-        console.error('Erro ao inserir em logestoque no banco de dados:', error);
+        throw error
     }
 }
 
 export const generateStockMovement = async (params: GenerateStockMovementParams) => {
-    // Verifica se o Estoque está congelado
+    try {
+        // Verifica se o Estoque está congelado
     const isStockFrozenStatus = await isStockFrozen(params.idStore)
     // Verifica se o produto é associado
     const associatedStockProductInfo = await getAssociatedStockProductInfo(params.idProduct)
@@ -216,17 +221,20 @@ export const generateStockMovement = async (params: GenerateStockMovementParams)
         customediosemimposto: Number(productParams.customediosemimposto),
         customediocomimposto: Number(productParams.customediocomimposto)
     }
-    console.log(params.custocomimpostototalentrada)
-    // Se estiver congelado, insere na tabela estoquecongelado
-    if(isStockFrozenStatus){
-        await insertStockFrozen({
-            idStore: insertLogStockParams.idStore,
-            idProduct: insertLogStockParams.idProduct,
-            quantity: insertLogStockParams.quantity,
-            idMovementType: insertLogStockParams.idMovementType,
-            idInOrOut: insertLogStockParams.idInOrOut
-        })
-    } else { // Se não estiver congelado, insere na tabela logestoque e atualiza o estoque
-        await updateStock(insertLogStockParams)
+        // Se estiver congelado, insere na tabela estoquecongelado
+        if(isStockFrozenStatus && productParams.id_situacaocadastro === 1){
+            await insertStockFrozen({
+                idStore: insertLogStockParams.idStore,
+                idProduct: insertLogStockParams.idProduct,
+                quantity: insertLogStockParams.quantity,
+                idMovementType: insertLogStockParams.idMovementType,
+                idInOrOut: insertLogStockParams.idInOrOut
+            })
+        } else if (productParams.id_situacaocadastro === 1){ // Se não estiver congelado, insere na tabela logestoque e atualiza o estoque
+            await updateStock(insertLogStockParams)
+        }
+    } catch (error) {
+        throw error
     }
+    
 }

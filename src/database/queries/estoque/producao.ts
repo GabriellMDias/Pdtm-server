@@ -1,7 +1,9 @@
 import { QueryConfig, QueryResult } from "pg"
 import { insertLogTransacao } from "../logTransacao"
 import { generateStockMovement } from "./estoque"
+import { isProductActive } from '../products'
 import pgClient from "../../db"
+import { logger } from "../../../lib/logger"
 
 type Recipe = {
     id: number,
@@ -48,8 +50,7 @@ const getRecipeItems = async (idProduct: number, idStore: number, qttProduced: n
         const result: QueryResult<RecipeItem> = await pgClient.query(query) 
         return result.rows
     } catch (error) {
-        console.error('Erro ao obter itens da receita:', error);
-        return []
+        throw error
     }
 }
 
@@ -118,49 +119,67 @@ const insertProducao = async (producaoProps: ProducaoProps) => {
     try {
         const result = await pgClient.query(query) 
     } catch (error) {
-        console.error('Erro ao incluir producao no banco de dados:', error);
+        throw error
     }
 }
 
 export const lancamentoProducao = async (producaoProps: ProducaoProps) => {
-    // Used itens for recipe info (Only produced product is inserted in logtransacao)
-    const recipeItems = await getRecipeItems(producaoProps.idProduto, producaoProps.idLoja, producaoProps.quantidade)
-    recipeItems.map(async (recipeItem) => {
-        const generateStockDataRecipeItem = {
-            idInOrOut: 1, 
+    try {
+        const productActiveStatus = await isProductActive(producaoProps.idProduto, producaoProps.idLoja)
+
+        if(!productActiveStatus) {
+            throw new Error(`Código ${producaoProps.idProduto} excluído.`);
+        }
+
+        // Used itens for recipe info (Only produced product is inserted in logtransacao)
+        const recipeItems = await getRecipeItems(producaoProps.idProduto, producaoProps.idLoja, producaoProps.quantidade)
+        recipeItems.map(async (recipeItem) => {
+            const generateStockDataRecipeItem = {
+                idInOrOut: 1, 
+                idMovementType: 23, 
+                idProduct: recipeItem.id_produto, 
+                idStore: producaoProps.idLoja, 
+                idUser: producaoProps.idUser, 
+                quantity: parseFloat(recipeItem.qtd_utilizada)
+            } 
+            await generateStockMovement(generateStockDataRecipeItem)
+        })
+    
+        // Produced Product info (Only produced product is inserted in logtransacao)
+        const totalCostRecipeItems = recipeItems.reduce((acc, current) => acc + parseFloat(current.custocomimposto_utilizado), 0)
+    
+        const generateStockDataProduced = {
+            idInOrOut: 0, 
             idMovementType: 23, 
-            idProduct: recipeItem.id_produto, 
+            idProduct: producaoProps.idProduto, 
             idStore: producaoProps.idLoja, 
             idUser: producaoProps.idUser, 
-            quantity: parseFloat(recipeItem.qtd_utilizada)
+            quantity: producaoProps.quantidade,
+            custocomimpostototalentrada: totalCostRecipeItems
         } 
-        await generateStockMovement(generateStockDataRecipeItem)
-    })
+        const logTransacaoDataProduced = {
+            idStore: producaoProps.idLoja, 
+            idProduct: producaoProps.idProduto, 
+            idForm: 85,
+            idTransactionType: 0,
+            idUser: producaoProps.idUser,
+            ipTerminal: producaoProps.ipTerminal
+        }
+    
+        await pgClient.query('BEGIN')
 
-    // Produced Product info (Only produced product is inserted in logtransacao)
-    const totalCostRecipeItems = recipeItems.reduce((acc, current) => acc + parseFloat(current.custocomimposto_utilizado), 0)
+        await generateStockMovement(generateStockDataProduced)
+        await insertLogTransacao(logTransacaoDataProduced)
+        await insertProducao(producaoProps)
 
-    const generateStockDataProduced = {
-        idInOrOut: 0, 
-        idMovementType: 23, 
-        idProduct: producaoProps.idProduto, 
-        idStore: producaoProps.idLoja, 
-        idUser: producaoProps.idUser, 
-        quantity: producaoProps.quantidade,
-        custocomimpostototalentrada: totalCostRecipeItems
-    } 
-    const logTransacaoDataProduced = {
-        idStore: producaoProps.idLoja, 
-        idProduct: producaoProps.idProduto, 
-        idForm: 85,
-        idTransactionType: 0,
-        idUser: producaoProps.idUser,
-        ipTerminal: producaoProps.ipTerminal
+        await pgClient.query('COMMIT')
+
+        return true
+    } catch (error) {
+        logger.error('Erro ao processar lançamento da produção:', error, '\nDado não transmitido: ', JSON.stringify(producaoProps));
+        await pgClient.query('ROLLBACK')
+        return false
     }
-
-    await generateStockMovement(generateStockDataProduced)
-    await insertLogTransacao(logTransacaoDataProduced)
-    await insertProducao(producaoProps)
 }
 
 export const getRecipes = async (idStore: number) => {
@@ -177,7 +196,11 @@ export const getRecipes = async (idStore: number) => {
         values: [idStore]
     }
 
-    const result: QueryResult<Recipe> = await pgClient.query(query)
-
-    return result
+    try {
+        const result: QueryResult<Recipe> = await pgClient.query(query)
+        return result
+    } catch (error) {
+        throw error
+    }
+    
 }

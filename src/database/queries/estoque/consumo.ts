@@ -3,6 +3,7 @@ import { QueryConfig, QueryResult } from "pg";
 import { generateStockMovement } from "./estoque";
 import { insertLogTransacao } from "../logTransacao";
 import { getProductParams } from "../products";
+import { logger } from "../../../lib/logger";
 
 export type ConsumoProps = {
     idLoja: number, 
@@ -14,108 +15,112 @@ export type ConsumoProps = {
 }
 
 const insertConsumo = async (consumoProps: ConsumoProps) => {
-    const productParams = await getProductParams(consumoProps.idProduto, consumoProps.idLoja)
-    
-    const query: QueryConfig = {
-        text: `
-                DO $$
-                    DECLARE
-                        p_quantidadeconsumoanterior numeric(12,3);
-                        p_emitenota boolean;
-                    BEGIN
-                        /*Verifica se o tipo consumo emite nota*/
-			    		SELECT emitenota 
-			    		INTO p_emitenota
-			    		FROM tipoconsumo 
-			    		WHERE id = ${consumoProps.idTipoConsumo};
-                        /* Verifica se já existe um registro com os mesmos valores na tabela consumo */
-                        SELECT quantidade
-                        INTO   p_quantidadeconsumoanterior
-                        FROM consumo
-                        WHERE id_loja = ${consumoProps.idLoja}
-                        AND id_produto = ${consumoProps.idProduto}
-                        AND data = NOW()::date
-                        AND id_tipoconsumo = ${consumoProps.idTipoConsumo};
+    try {
+        const productParams = await getProductParams(consumoProps.idProduto, consumoProps.idLoja)
 
-                        IF p_quantidadeconsumoanterior IS NOT NULL THEN
-                            /* Se existir, realiza um UPDATE */
-                            UPDATE consumo 
-                            SET
-                                quantidade = (p_quantidadeconsumoanterior + ${consumoProps.quantidade}),
-                                custocomimposto = ${productParams.custocomimposto},
-                                custosemimposto = ${productParams.custosemimposto},
-                                id_aliquotacredito = ${productParams.id_aliquotacreditocusto},
-                                piscofins = ${productParams.piscofins},
-                                id_tipopiscofins = ${productParams.id_tipopiscofins},
-                                customediocomimposto = ${productParams.customediocomimposto},
-                                customediosemimposto = ${productParams.customediosemimposto},
-                                valoripi = ${productParams.valoripi},
-                                valoricmssubstituicao = ${productParams.valoricmssubstituicao},
-                                valorbasepiscofins = ${productParams.valorbasepiscofins},
-                                valorpis = ${productParams.valorpis},
-                                valorcofins = ${productParams.valorcofins},
-                                emitenota = p_emitenota
+        const query: QueryConfig = {
+            text: `
+                    DO $$
+                        DECLARE
+                            p_quantidadeconsumoanterior numeric(12,3);
+                            p_emitenota boolean;
+                        BEGIN
+                            /*Verifica se o tipo consumo emite nota*/
+	    		    		SELECT emitenota 
+	    		    		INTO p_emitenota
+	    		    		FROM tipoconsumo 
+	    		    		WHERE id = ${consumoProps.idTipoConsumo};
+                            /* Verifica se já existe um registro com os mesmos valores na tabela consumo */
+                            SELECT quantidade
+                            INTO   p_quantidadeconsumoanterior
+                            FROM consumo
                             WHERE id_loja = ${consumoProps.idLoja}
                             AND id_produto = ${consumoProps.idProduto}
                             AND data = NOW()::date
                             AND id_tipoconsumo = ${consumoProps.idTipoConsumo};
-                        ELSE
-                            /* Se não existir registro, realiza um INSERT */
-                            INSERT INTO consumo
-                            (
-                                id_loja, 
-                                id_produto, 
-                                data, 
-                                id_tipoconsumo, 
-                                quantidade, 
-                                custocomimposto, 
-                                custosemimposto, 
-                                id_aliquotacredito,
-                                piscofins, 
-                                id_tipopiscofins, 
-                                observacao, 
-                                customediocomimposto, 
-                                customediosemimposto, 
-                                valoripi, 
-                                valoricmssubstituicao, 
-                                id_notasaida, 
-                                valorbasepiscofins, 
-                                valorpis, 
-                                valorcofins, 
-                                emitenota
-                            )
-                            VALUES(
-                                ${consumoProps.idLoja},
-                                ${consumoProps.idProduto},
-                                NOW()::date,
-                                ${consumoProps.idTipoConsumo},
-                                ${consumoProps.quantidade},
-                                ${productParams.custocomimposto},
-                                ${productParams.custosemimposto},
-                                ${productParams.id_aliquotacreditocusto},
-                                ${productParams.piscofins},
-                                ${productParams.id_tipopiscofins},
-                                '',
-                                ${productParams.customediocomimposto},
-                                ${productParams.customediosemimposto},
-                                ${productParams.valoripi},
-                                ${productParams.valoricmssubstituicao},
-                                null,
-                                ${productParams.valorbasepiscofins}, /*Custo Médio com imposto - alíquota + valoripi*/
-                                ${productParams.valorpis},
-                                ${productParams.valorcofins},
-                                p_emitenota
-                            );
-                        END IF;
-                    END;
-                $$;
-        `
-    }
 
-    try {
+                            IF p_quantidadeconsumoanterior IS NOT NULL THEN
+                                /* Se existir, realiza um UPDATE */
+                                UPDATE consumo 
+                                SET
+                                    quantidade = (p_quantidadeconsumoanterior + ${consumoProps.quantidade}),
+                                    custocomimposto = ${productParams.custocomimposto},
+                                    custosemimposto = ${productParams.custosemimposto},
+                                    id_aliquotacredito = ${productParams.id_aliquotacreditocusto},
+                                    piscofins = ${productParams.piscofins},
+                                    id_tipopiscofins = ${productParams.id_tipopiscofins},
+                                    customediocomimposto = ${productParams.customediocomimposto},
+                                    customediosemimposto = ${productParams.customediosemimposto},
+                                    valoripi = ${productParams.valoripi},
+                                    valoricmssubstituicao = ${productParams.valoricmssubstituicao},
+                                    valorbasepiscofins = ${productParams.valorbasepiscofins},
+                                    valorpis = ${productParams.valorpis},
+                                    valorcofins = ${productParams.valorcofins},
+                                    emitenota = p_emitenota
+                                WHERE id_loja = ${consumoProps.idLoja}
+                                AND id_produto = ${consumoProps.idProduto}
+                                AND data = NOW()::date
+                                AND id_tipoconsumo = ${consumoProps.idTipoConsumo};
+                            ELSE
+                                /* Se não existir registro, realiza um INSERT */
+                                INSERT INTO consumo
+                                (
+                                    id_loja, 
+                                    id_produto, 
+                                    data, 
+                                    id_tipoconsumo, 
+                                    quantidade, 
+                                    custocomimposto, 
+                                    custosemimposto, 
+                                    id_aliquotacredito,
+                                    piscofins, 
+                                    id_tipopiscofins, 
+                                    observacao, 
+                                    customediocomimposto, 
+                                    customediosemimposto, 
+                                    valoripi, 
+                                    valoricmssubstituicao, 
+                                    id_notasaida, 
+                                    valorbasepiscofins, 
+                                    valorpis, 
+                                    valorcofins, 
+                                    emitenota
+                                )
+                                VALUES(
+                                    ${consumoProps.idLoja},
+                                    ${consumoProps.idProduto},
+                                    NOW()::date,
+                                    ${consumoProps.idTipoConsumo},
+                                    ${consumoProps.quantidade},
+                                    ${productParams.custocomimposto},
+                                    ${productParams.custosemimposto},
+                                    ${productParams.id_aliquotacreditocusto},
+                                    ${productParams.piscofins},
+                                    ${productParams.id_tipopiscofins},
+                                    '',
+                                    ${productParams.customediocomimposto},
+                                    ${productParams.customediosemimposto},
+                                    ${productParams.valoripi},
+                                    ${productParams.valoricmssubstituicao},
+                                    null,
+                                    ${productParams.valorbasepiscofins}, /*Custo Médio com imposto - alíquota + valoripi*/
+                                    ${productParams.valorpis},
+                                    ${productParams.valorcofins},
+                                    p_emitenota
+                                );
+                            END IF;
+                        END;
+                    $$;
+            `
+        }
+
+        if(productParams.id_situacaocadastro === 0) {
+            throw new Error(`Código ${consumoProps.idProduto} excluído.`);
+        }
+
         await pgClient.query(query) 
     } catch (error) {
-        console.error('Erro ao incluir consumo no banco de dados:', error);
+        throw error
     }
 }
 
@@ -136,9 +141,23 @@ export const lancamentoConsumo = async (consumoProps: ConsumoProps) => {
         idUser: consumoProps.idUser,
         ipTerminal: consumoProps.ipTerminal
     }
-    await generateStockMovement(generateStockData)
-    await insertLogTransacao(logTransacaoData)
-    await insertConsumo(consumoProps)
+
+    try {
+        await pgClient.query('BEGIN')
+
+        await generateStockMovement(generateStockData)
+        await insertLogTransacao(logTransacaoData)
+        await insertConsumo(consumoProps)
+
+        await pgClient.query('COMMIT')
+
+        return true
+    } catch (error) {
+        logger.error('Erro ao processar lançamento do consumo:', error, '\nDado não transmitido: ', JSON.stringify(consumoProps));
+        await pgClient.query('ROLLBACK')
+        return false
+    }
+    
 }
 
 export const lancamentoConsumoWithQuery = async (idLoja: number, idProduto: number, quantidade: number, idTipoConsumo: number, ipTerminal: string) => {

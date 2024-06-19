@@ -1,6 +1,7 @@
 import pgClient from "../db";
 import { QueryConfig } from "pg";
 import { getVRVersion } from "./utils";
+import { logger } from "../../lib/logger";
 
 type LogTransacaoQueryParams = {
     idStore: number, 
@@ -12,10 +13,11 @@ type LogTransacaoQueryParams = {
 }
 
 export const insertLogTransacao = async (params: LogTransacaoQueryParams) => {
-    const VRVersion = await getVRVersion()
+    try {
+        const VRVersion = await getVRVersion()
 
-    const query: QueryConfig = {
-        text: `INSERT INTO logtransacao
+        const query: QueryConfig = {
+            text: `INSERT INTO logtransacao
                 (
                     id_loja,
                     referencia,
@@ -53,11 +55,10 @@ export const insertLogTransacao = async (params: LogTransacaoQueryParams) => {
                         params.ipTerminal, 
                         VRVersion,
                         params.idProduct]
-    }
+        }
 
-    try {
         await pgClient.query(query)
     } catch (error) {
-        console.error('Erro ao incluir logTransacao no banco de dados:', error);
+        throw error
     }
 }

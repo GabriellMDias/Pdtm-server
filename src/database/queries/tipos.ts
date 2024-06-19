@@ -21,8 +21,14 @@ export const getTipoEmbalagem = async () => {
                 FROM tipoembalagem`,
         name: 'getTipoEmbalagem'
     }
-    const result: QueryResult<TipoEmbalagem> = await pgClient.query(queryTipoEmbalagem)
-    return result
+
+    try {
+        const result: QueryResult<TipoEmbalagem> = await pgClient.query(queryTipoEmbalagem)
+        return result
+    } catch (error) {
+        throw error
+    }
+    
 }
 
 export const getTipoMotivoTroca = async () => {
@@ -34,8 +40,14 @@ export const getTipoMotivoTroca = async () => {
                WHERE id_situacaocadastro = 1`,
         name: 'getTipoMotivoTroca'
     }
-    const result: QueryResult<MotivoLancamento> = await pgClient.query(queryTipoMotivoTroca)
-    return result
+
+    try {
+        const result: QueryResult<MotivoLancamento> = await pgClient.query(queryTipoMotivoTroca)
+        return result
+    } catch (error) {
+        throw error
+    }
+    
 }
 
 export const getTipoConsumo = async () => {
@@ -47,8 +59,14 @@ export const getTipoConsumo = async () => {
                 WHERE id_situacaocadastro = 1`,
         name: 'getTipoConsumo'
     }
-    const result: QueryResult<MotivoLancamento> = await pgClient.query(queryTipoConsumo)
-    return result
+
+    try {
+        const result: QueryResult<MotivoLancamento> = await pgClient.query(queryTipoConsumo)
+        return result
+    } catch (error) {
+        throw error
+    }
+    
 }
 
 export const getTipoMotivoQuebra = async () => {
@@ -60,8 +78,14 @@ export const getTipoMotivoQuebra = async () => {
                 WHERE id_situacaocadastro = 1`,
         name: 'getTipoMotivoQuebra'
     }
-    const result: QueryResult<MotivoLancamento> = await pgClient.query(queryTipoQuebra)
-    return result
+
+    try {
+        const result: QueryResult<MotivoLancamento> = await pgClient.query(queryTipoQuebra)
+        return result
+    } catch (error) {
+        throw error
+    }
+    
 }
 
 export const getTipoMotivoPerda = async () => {
@@ -73,6 +97,11 @@ export const getTipoMotivoPerda = async () => {
                 WHERE id_situacaocadastro = 1`,
         name: 'getTipoMotivoPerda'
     }
-    const result: QueryResult<MotivoLancamento> = await pgClient.query(queryTipoPerda)
-    return result
+
+    try {
+        const result: QueryResult<MotivoLancamento> = await pgClient.query(queryTipoPerda)
+        return result
+    } catch (error) {
+        throw error
+    }
 }

@@ -15,6 +15,10 @@ const query: QueryConfig = {
 }
 
 export const getStores = async () => {
-    const result: QueryResult<Store> = await pgClient.query(query)
-    return result
+    try {
+        const result: QueryResult<Store> = await pgClient.query(query)
+        return result
+    } catch (error) {
+        throw error
+    }
 }

@@ -26,6 +26,7 @@ export type AssociatedStockProduct = {
 }
 
 type ProductParams = {
+    id_situacaocadastro: number,
     custosemimposto: number,
     custocomimposto: number,
     customediosemimposto: number,
@@ -69,8 +70,14 @@ export const getProducts = async (idStore: number) => {
                 ORDER BY p.id`,
         values: [idStore]
     }
-    const result: QueryResult<Produto> = await pgClient.query(query)
-    return result
+
+    try {
+        const result: QueryResult<Produto> = await pgClient.query(query)
+        return result
+    } catch (error) {
+        throw error
+    }
+    
 }
 
 export const getAssociatedStockProductInfo = async (idProduct: number) => {
@@ -87,13 +94,18 @@ export const getAssociatedStockProductInfo = async (idProduct: number) => {
         values: [idProduct],
     }
 
-    const result: QueryResult<AssociatedStockProduct> = await pgClient.query(query)
-    return result.rows[0]
+    try {
+        const result: QueryResult<AssociatedStockProduct> = await pgClient.query(query)
+        return result.rows[0]
+    } catch (error) {
+        throw error
+    }
 }
 
 export const getProductParams = async (idProduct: number, idStore: number) => {
     const query: QueryConfig = {
         text: `SELECT 
+                    pc.id_situacaocadastro,
                     pc.custosemimposto,
                     pc.custocomimposto,
                     pc.customediosemimposto,
@@ -123,6 +135,30 @@ export const getProductParams = async (idProduct: number, idStore: number) => {
         values: [idProduct, idStore],
     }
 
-    const result: QueryResult<ProductParams> = await pgClient.query(query)
-    return result.rows[0]
+    try {
+        const result: QueryResult<ProductParams> = await pgClient.query(query)
+        return result.rows[0]
+    } catch (error) {
+        throw error
+    }
+    
+}
+
+export const isProductActive = async (idProduct:number, idStore: number) => {
+    const query: QueryConfig<number[]> = {
+        text: `SELECT 
+                	id_situacaocadastro::boolean
+                FROM produtocomplemento pc
+                WHERE id_produto = $1
+                AND id_loja = $2
+                LIMIT 1`,
+        values: [idProduct, idStore],
+    }
+
+    try {
+        const result: QueryResult<{id_situacaocadastro: boolean}> = await pgClient.query(query)
+        return result.rows[0].id_situacaocadastro
+    } catch (error) {
+        throw error
+    }
 }

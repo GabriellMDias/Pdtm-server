@@ -3,6 +3,7 @@ import { QueryConfig } from "pg";
 import { getProductParams } from "../products";
 import { generateStockMovement } from "./estoque";
 import { insertLogTransacao } from "../logTransacao";
+import { logger } from "../../../lib/logger";
 
 export type TrocaProps = {
     idLoja: number, 
@@ -14,9 +15,10 @@ export type TrocaProps = {
 }
 
 const insertTroca = async (trocaProps: TrocaProps) => {
-    const productParams = await getProductParams(trocaProps.idProduto, trocaProps.idLoja)
+    try {
+        const productParams = await getProductParams(trocaProps.idProduto, trocaProps.idLoja)
     
-    const query: QueryConfig = {
+        const query: QueryConfig = {
         text: `
                 DO $$
                     DECLARE
@@ -77,12 +79,15 @@ const insertTroca = async (trocaProps: TrocaProps) => {
                     END;
                 $$;
         `
-    }
+        }
 
-    try {
+        if(productParams.id_situacaocadastro === 0) {
+            throw new Error(`Código ${trocaProps.idProduto} excluído.`);
+        }
+
         await pgClient.query(query) 
     } catch (error) {
-        console.error('Erro ao incluir troca no banco de dados:', error);
+        throw error
     }
 }
 
@@ -103,9 +108,24 @@ export const lancamentoTroca = async (trocaProps: TrocaProps) => {
         idUser: trocaProps.idUser,
         ipTerminal: trocaProps.ipTerminal
     }
-    await generateStockMovement(generateStockData)
-    await insertLogTransacao(logTransacaoData)
-    await insertTroca(trocaProps)
+
+
+    
+
+    try {
+        await pgClient.query('BEGIN')
+
+        await generateStockMovement(generateStockData)
+        await insertLogTransacao(logTransacaoData)
+        await insertTroca(trocaProps)
+
+        await pgClient.query('COMMIT')
+        return true
+    } catch (error) {
+        logger.error('Erro ao processar lançamento da troca:', error, '\nDado não transmitido: ', JSON.stringify(trocaProps));
+        await pgClient.query('ROLLBACK')
+        return false
+    }
 }
 
 

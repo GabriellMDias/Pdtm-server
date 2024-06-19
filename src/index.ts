@@ -17,8 +17,6 @@ const port = process.env.PORT;
 
 app.get('/testconnection/:devicename', (req: Request, res: Response) => {
   const { devicename } = req.params
-
-  console.log(devicename)
   res.status(200).send('pdtm-server')
 });
 
