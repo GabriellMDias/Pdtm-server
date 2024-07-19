@@ -4,6 +4,7 @@ import { lancamentoTroca, TrocaProps } from "../database/queries/estoque/troca";
 import { ConsumoProps, lancamentoConsumo } from "../database/queries/estoque/consumo";
 import { lancamentoProducao, ProducaoProps } from "../database/queries/estoque/producao";
 import { logger } from "../lib/logger";
+import { BalancoItemProps, lancamentoBalanco } from "../database/queries/estoque/balanco";
 
 router.post(
   "/lancamentotroca",
@@ -70,5 +71,27 @@ router.post(
     res.status(200).send(dataSuccess)
   }
 );
+
+router.post(
+  "/lancamentobalanco",
+  async (req: Request, res: Response) => {
+    const data: BalancoItemProps[] = req.body
+    const dataSuccess: BalancoItemProps[] = []
+
+    for (const item of data) {
+      const result = await lancamentoBalanco(item)
+
+      if(result) {
+        dataSuccess.push(item)
+      }
+    }
+
+    if (dataSuccess.length > 0) {
+      logger.transmissionLog(data[0].idLoja, 'BALANÇO', dataSuccess)
+    }
+
+    res.status(200).send(dataSuccess)
+  }
+)
 
 export default router

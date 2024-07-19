@@ -4,6 +4,7 @@ import { getProducts } from "../database/queries/products";
 import { getStores } from "../database/queries/stores";
 import { getTipoEmbalagem, getTipoMotivoTroca, getTipoConsumo, getTipoMotivoQuebra, getTipoMotivoPerda } from "../database/queries/tipos";
 import { getRecipes } from "../database/queries/estoque/producao";
+import { getBalancos } from "../database/queries/estoque/balanco";
 
 router.post(
   "/products",
@@ -70,6 +71,16 @@ router.get(
   async (req: Request, res: Response) => {
     const result = await getTipoMotivoPerda()
     res.send(result.rows)
+  }
+);
+
+router.post(
+  "/balancos",
+  async (req: Request, res: Response) => {
+    const {idLoja} = req.body
+
+    const result = await getBalancos(idLoja)
+    res.send(result)
   }
 );
 

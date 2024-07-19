@@ -21,7 +21,7 @@ const log = (message?: any, ...optionalParams: any[]) => {
 
     const logMessage = [message, ...optionalParams].join('');
 
-    console.error(logMessage)
+    console.log(logMessage)
     
     const logMessageWithNewLine = logMessage + '\n';
 
@@ -54,7 +54,7 @@ const error = (message?: any, ...optionalParams: any[]) => {
 
     console.error(message, ...optionalParams)
     
-    const logMessageWithNewLine = logMessage + '\n' + '-'.repeat(process.stdout.columns) + '\n';
+    const logMessageWithNewLine = logMessage + '\n' + '-'.repeat(process.stdout.columns) + '\n\n';
 
     fs.appendFile(logFilePath, logMessageWithNewLine, (err) => {
         if (err) {
@@ -65,7 +65,7 @@ const error = (message?: any, ...optionalParams: any[]) => {
 
 const transmissionLog = (idStore: number, transmissionName: string, data: any[]) => {
     const now = new Date()
-    const textLog = `-- TRANSMITINDO ${transmissionName},  --\n${now}\nID LOJA: ${idStore}\n${JSON.stringify(data)}`
+    const textLog = `-- TRANSMITINDO ${transmissionName} --\n${now}\nID LOJA: ${idStore}\n${JSON.stringify(data)}\n\n`
     logger.log(textLog)
 }
 

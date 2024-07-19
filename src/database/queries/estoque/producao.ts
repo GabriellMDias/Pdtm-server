@@ -111,6 +111,25 @@ const insertProducao = async (producaoProps: ProducaoProps) => {
                             p_piscofins,
                             p_customediocomimposto
                         );
+
+                        INSERT INTO producaoitem (
+                            id_producao,
+                            id_produto,
+                            qtdembalagemproducao,
+                            qtdembalagemproduto
+                        )
+                        (
+                            SELECT
+                                (SELECT last_value FROM producao_id_seq) as id_producao,
+                                id_produto,
+                                qtdembalagemreceita as qtdembalagemproducao,
+                                qtdembalagemproduto
+                            FROM receitaitem
+                            WHERE id_receita = (
+                                SELECT id_receita FROM receitaproduto WHERE id_produto = ${producaoProps.idProduto}
+                            )
+                            AND baixaestoque = true	
+                        );
                     END;
                 $$;
         `
