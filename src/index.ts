@@ -6,6 +6,7 @@ import cors from 'cors'
 
 import sincronizar from "./syncronize/index";
 import transmit from "./transmit/index"
+import checkForUpdate from "./checkForUpdate/index"
 
 dotenv.config();
 
@@ -23,6 +24,8 @@ app.get('/testconnection/:devicename', (req: Request, res: Response) => {
 app.use('/sync', sincronizar)
 
 app.use('/transmit', transmit)
+
+app.use('/checkforupdate', checkForUpdate)
 
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);

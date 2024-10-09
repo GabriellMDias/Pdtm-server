@@ -50,7 +50,7 @@ const insertBalancoItem = async (balancoItemProps: BalancoItemProps) => {
                         p_customediocomimposto:= ${productParams.customediocomimposto};
                     
                         /* Verifica se já existe um lançamento para o código selecionado */
-                        SELECT quantidade
+                        SELECT CASE WHEN quantidade IS NULL THEN 0 ELSE quantidade END AS quantidade
                         INTO p_quantidadeanterior
                         FROM balancoestoque
                         WHERE id_balanco = p_id_balanco
