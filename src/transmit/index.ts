@@ -5,6 +5,7 @@ import { ConsumoProps, lancamentoConsumo } from "../database/queries/estoque/con
 import { lancamentoProducao, ProducaoProps } from "../database/queries/estoque/producao";
 import { logger } from "../lib/logger";
 import { BalancoItemProps, lancamentoBalanco } from "../database/queries/estoque/balanco";
+import { lancamentoRuptura, RupturaItemsProps } from "../database/queries/administrativo/ruptura";
 
 router.post(
   "/lancamentotroca",
@@ -91,6 +92,20 @@ router.post(
     }
 
     res.status(200).send(dataSuccess)
+  }
+)
+
+router.post("/lancamentoruptura",
+  async (req: Request, res: Response) => {
+    const data: RupturaItemsProps[] = req.body
+
+    const result = await lancamentoRuptura(data)
+
+    if(result) {
+      logger.transmissionLog(data[0].idLoja, 'RUPTURA', data)
+    }
+
+    res.status(200).send(data)
   }
 )
 

@@ -190,8 +190,6 @@ export const lancamentoBalanco = async (balancoItemProps: BalancoItemProps) => {
         } else {
             throw new Error('Balanço foi excluído')
         }
-
-        
     } catch (error) {
         logger.error('Erro ao processar lançamento do balanço:', error, '\nDado não transmitido: ', JSON.stringify(balancoItemProps));
         await pgClient.query('ROLLBACK')
