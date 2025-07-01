@@ -1,11 +1,14 @@
 version: "3.8"
 
 services:
-  pdtm-api:
+  pdtm-server:
     build: .
-    container_name: Pdtm-server
+    container_name: pdtm-server
     restart: always
     ports:
       - "4497:4497"
     env_file:
       - .env
+    volumes:
+      - /pdt/Pdtm-server/log:/app/log
+      - /pdt/Pdtm-server/apk:/app/apk

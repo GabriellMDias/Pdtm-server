@@ -11,4 +11,4 @@ dist/
 
 log/**/*.txt
 
-apk/*
+apk/*.apk
