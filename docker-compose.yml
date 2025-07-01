@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  pdtm-api:
+    build: .
+    container_name: Pdtm-server
+    restart: always
+    ports:
+      - "4497:4497"
+    env_file:
+      - .env
