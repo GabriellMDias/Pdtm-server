@@ -137,7 +137,22 @@ export const getProductParams = async (idProduct: number, idStore: number) => {
 
     try {
         const result: QueryResult<ProductParams> = await pgClient.query(query)
-        return result.rows[0]
+        const raw = result.rows[0];
+
+        return {
+        ...raw,
+        custosemimposto: Number(raw.custosemimposto),
+        custocomimposto: Number(raw.custocomimposto),
+        customediosemimposto: Number(raw.customediosemimposto),
+        customediocomimposto: Number(raw.customediocomimposto),
+        estoque: Number(raw.estoque),
+        piscofins: Number(raw.piscofins),
+        valoripi: Number(raw.valoripi),
+        valoricmssubstituicao: Number(raw.valoricmssubstituicao),
+        valorbasepiscofins: Number(raw.valorbasepiscofins),
+        valorpis: Number(raw.valorpis),
+        valorcofins: Number(raw.valorcofins),
+        };
     } catch (error) {
         throw error
     }

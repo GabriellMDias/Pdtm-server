@@ -1,6 +1,6 @@
 import { QueryConfig, QueryResult } from "pg"
 import { insertLogTransacao } from "../logTransacao"
-import { generateStockMovement } from "./estoque"
+import { generateStockMovement, GenerateStockMovementParams } from "./estoque"
 import { isProductActive } from '../products'
 import pgClient from "../../db"
 import { logger } from "../../../lib/logger"
@@ -153,29 +153,45 @@ export const lancamentoProducao = async (producaoProps: ProducaoProps) => {
         // Used itens for recipe info (Only produced product is inserted in logtransacao)
         const recipeItems = await getRecipeItems(producaoProps.idProduto, producaoProps.idLoja, producaoProps.quantidade)
         recipeItems.map(async (recipeItem) => {
-            const generateStockDataRecipeItem = {
+            const generateStockDataRecipeItem: GenerateStockMovementParams = {
                 idInOrOut: 1, 
                 idMovementType: 23, 
                 idProduct: recipeItem.id_produto, 
                 idStore: producaoProps.idLoja, 
                 idUser: producaoProps.idUser, 
-                quantity: parseFloat(recipeItem.qtd_utilizada)
+                quantity: parseFloat(recipeItem.qtd_utilizada),
+                updateCost: false
             } 
             await generateStockMovement(generateStockDataRecipeItem)
         })
     
         // Produced Product info (Only produced product is inserted in logtransacao)
-        const totalCostRecipeItems = recipeItems.reduce((acc, current) => acc + parseFloat(current.custocomimposto_utilizado), 0)
+        const totais = recipeItems.reduce(
+        (acc, current) => {
+            acc.totalCustoComImposto += Number(current.custocomimposto_utilizado) || 0
+            acc.totalCustoSemImposto += Number(current.custosemimposto_utilizado) || 0
+            return acc
+        },
+        {
+            totalCustoComImposto: 0,
+            totalCustoSemImposto: 0,
+        }
+        )
     
-        const generateStockDataProduced = {
+        const generateStockDataProduced: GenerateStockMovementParams = {
             idInOrOut: 0, 
             idMovementType: 23, 
             idProduct: producaoProps.idProduto, 
             idStore: producaoProps.idLoja, 
             idUser: producaoProps.idUser, 
             quantity: producaoProps.quantidade,
-            custocomimpostototalentrada: totalCostRecipeItems
+            updateCost: true,
+            costs: {
+                custocomimposto: Number((totais.totalCustoComImposto / producaoProps.quantidade).toFixed(3)),
+                custosemimposto: Number((totais.totalCustoSemImposto / producaoProps.quantidade).toFixed(3))
+            }
         } 
+
         const logTransacaoDataProduced = {
             idStore: producaoProps.idLoja, 
             idProduct: producaoProps.idProduto, 

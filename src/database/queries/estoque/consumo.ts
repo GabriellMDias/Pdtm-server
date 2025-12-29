@@ -131,7 +131,8 @@ export const lancamentoConsumo = async (consumoProps: ConsumoProps) => {
         idProduct: consumoProps.idProduto, 
         idStore: consumoProps.idLoja, 
         idUser: consumoProps.idUser, 
-        quantity: consumoProps.quantidade
+        quantity: consumoProps.quantidade,
+        updateCost: false
     } 
     const logTransacaoData = {
         idStore: consumoProps.idLoja, 

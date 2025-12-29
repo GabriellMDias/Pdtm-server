@@ -98,7 +98,8 @@ export const lancamentoTroca = async (trocaProps: TrocaProps) => {
         idProduct: trocaProps.idProduto, 
         idStore: trocaProps.idLoja, 
         idUser: trocaProps.idUser, 
-        quantity: trocaProps.quantidade
+        quantity: trocaProps.quantidade,
+        updateCost: false
     } 
     const logTransacaoData = {
         idStore: trocaProps.idLoja, 
