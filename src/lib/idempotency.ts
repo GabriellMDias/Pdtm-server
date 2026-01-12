@@ -1,3 +1,4 @@
+/*backend/src/lib/idempotency.ts*/
 import crypto from "crypto";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import pgClient from "../database/db";
@@ -6,8 +7,32 @@ function sha256(s: string) {
   return crypto.createHash("sha256").update(s).digest("hex");
 }
 
-function stableStringify(body: any) {
-  return JSON.stringify(body);
+function stableStringify(body: any): string {
+  const seen = new WeakSet();
+
+  const normalize = (v: any): any => {
+    if (v === null || v === undefined) return v;
+    if (typeof v !== "object") return v;
+
+    if (seen.has(v)) {
+      // evita loop em estruturas cíclicas (não deveria ocorrer em req.body)
+      return "[Circular]";
+    }
+    seen.add(v);
+
+    if (Array.isArray(v)) {
+      return v.map(normalize);
+    }
+
+    const keys = Object.keys(v).sort();
+    const out: Record<string, any> = {};
+    for (const k of keys) {
+      out[k] = normalize(v[k]);
+    }
+    return out;
+  };
+
+  return JSON.stringify(normalize(body));
 }
 
 type IdemRow = {
@@ -116,6 +141,7 @@ export function withIdempotency(options: {
 
         await handler(req, res, next);
 
+        // se handler não respondeu, não grava
         if (responseBody === undefined) return;
 
         // 3) grava conclusão para replay
