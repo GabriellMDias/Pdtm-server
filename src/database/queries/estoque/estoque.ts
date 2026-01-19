@@ -213,6 +213,14 @@ const updateStock = async (params: UpdateStock) => {
     }
 }
 
+const calculateAvgCost = (actualStock: number, actualAvgCost: number, quantityToEnter: number, costToEnter: number) => {
+    if (actualStock <= 0) {
+        return costToEnter
+    } else {
+        return Number((((actualStock * actualAvgCost) + (quantityToEnter * (costToEnter ?? 0))) / (actualStock + quantityToEnter)).toFixed(3));
+    }
+}
+
 const updateCost = async (params: UpdateCost) => {
     const insertQuery: QueryConfig = {
         text: `
@@ -273,9 +281,9 @@ export const generateStockMovement = async (params: GenerateStockMovementParams)
     const isAssociated = associatedStockProductInfo != undefined ? true : false
 
     const productParams = await getProductParams(isAssociated ? associatedStockProductInfo.id_produto_ass : params.idProduct, params.idStore)
-    
-    const novoCustoMedioSemImposto = Number((((productParams.estoque * productParams.customediosemimposto) + (params.quantity * (params.costs?.custosemimposto ?? 0))) / (productParams.estoque + params.quantity)).toFixed(3));
-    const novoCustoMedioComImposto = Number((((productParams.estoque * productParams.customediocomimposto) + (params.quantity * (params.costs?.custocomimposto ?? 0))) / (productParams.estoque + params.quantity)).toFixed(3));
+
+    const novoCustoMedioSemImposto = calculateAvgCost(productParams.estoque, productParams.customediosemimposto, params.quantity, params.costs?.custosemimposto ?? 0)
+    const novoCustoMedioComImposto = calculateAvgCost(productParams.estoque, productParams.customediocomimposto, params.quantity, params.costs?.custocomimposto ?? 0)
 
     const insertLogStockParams: UpdateStock = {
         idStore: params.idStore,
